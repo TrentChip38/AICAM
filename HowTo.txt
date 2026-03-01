@@ -1,0 +1,115 @@
+I have a python script based on the imx500 pose estimation script demo
+python3 ~/AICAM/imx500-models/picamera2/examples/imx500/pose_sword.py --unity-ip 144.39.120.28
+You must tell it your IP address so it can send UDP packets with this JSON
+{
+    "shoulders": {
+        "left":  kp(IDX_L_SHOULDER),
+        "right": kp(IDX_R_SHOULDER)
+    },
+    "hips": {
+        "left":  kp(IDX_L_HIP),
+        "right": kp(IDX_R_HIP)
+    },
+    "sword": {
+        "tip":               tip,
+        "handle":            handle,
+        "direction":         [round(dx, 4), round(dy, 4)],
+        "length":            round(length, 4),
+        "angle_deg":         round(angle, 2),
+        "angle_from_vertical": round(angle_from_vertical, 2),
+        "detected":          sword_detected
+    },
+    "t": round(time.time(), 4)
+}
+
+How I set this up:
+Set up the Pi. Originally this was at HackUSU so I set things up to run through Eduroam wifi and you have to bypass the firewalls on whatever computer is receiving the packets.
+We had a computer running the game in Unity that receives the info from a ras pi.
+
+I followed joinlater github repo to connect pi to Eduroam at USU:
+sudo apt install python3-pip python3-venv -y
+mkdir joinlater
+cd joinlater
+python3 -m venv joinlater
+source joinlater/bin/activate
+pip install https://github.com/Xeyler/joinlater/releases/download/v0.2.1/joinlater-0.2.1.tar.gz
+joinlater
+deactivate
+
+
+Actually setting up the Pi models and imx500 camera
+mkdir AICAM
+cd AICAM
+
+sudo apt install imx500-all
+
+Clone the imx500 models:
+git clone https://github.com/raspberrypi/imx500-models
+cd imx500-models
+./download_models.sh
+
+
+Also clone the picamera2 repo: (I think this is the only repo I ended up using)
+git clone https://github.com/raspberrypi/picamera2.git
+
+Get open CV:
+sudo apt install python3-opencv
+
+And then add a proxy for where the folders were at so they could be found by the script.
+You can see from the folder structure where the demos are that you can run with the imx500 Ras Pi AI camera.
+There are .rpk files in just the imx500 repo that you could run, but I cloned the picamera2 repo and that one had the .py demos ands thats what I use.
+sudo ln -s ~/AICAM/imx500-models /usr/share/imx500-models
+sudo mkdir -p /usr/share/imx500-models
+sudo ln -s ~/AICAM/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk /usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk
+cd ../..
+sudo mkdir -p /usr/share/imx500-models
+sudo ln -s ~/AICAM/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk /usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk
+
+This is where there was a lot of troubleshooting and stuff and I think adding the proxys fixed things ^^
+sudo apt install python3-picamera2
+sudo apt update && sudo apt full-upgrade
+sudo apt install libcamera-apps
+sudo apt install imx500-firmware
+sudo apt update
+sudo apt upgrade
+sudo rpi-update
+sudo reboot
+
+A few things the files used:
+sudo apt install munkres
+pip install munkres --break-system-packages
+
+
+Run some tests on the imx500 python demos:
+python3 ~/AICAM/imx500-models/picamera2/examples/imx500/imx500_object_detection_demo.py
+python3 ~/AICAM/imx500-models/picamera2/examples/imx500/imx500_pose_estimation_higherhrnet_demo.py
+
+Made a new python file to calibrate the colors to find for the sword vector
+touch calibrate.py
+python3 calibrate.py
+
+Then made the actual file I use based on imx500_pose_estimation_higherhrnet_demo
+touch imx500_sword_pose.py
+
+sudo apt install python3-picamera2
+sudo apt update && sudo apt full-upgrade
+
+You have to figure out what address your sending to and test that you can comm with it from the PI
+ping 144.39.120.28
+Then run the pose and sword model with IP address
+python3 pose_sword.py --unity-ip 144.39.120.28
+
+At some point I tried to make the PI show the UI on the small LCD screen but it broke it.
+git clone https://github.com/waveshare/LCD-show.git
+cd LCD-show
+sudo ./LCD35-show
+And changed some ish in config files:
+sudo nano /boot/firmware/config.txt
+And in the norma config menu, enabled SPI, which might be all thats needed
+
+I made desktop icons to run things. AI generated the files that go in these.
+nano ~/Desktop/sword_pose_est.desktop
+chmod +x ~/Desktop/sword_pose_est.desktop
+nano ~/Desktop/stop_tracker.desktop
+chmod +x ~/Desktop/stop_tracker.desktop
+
