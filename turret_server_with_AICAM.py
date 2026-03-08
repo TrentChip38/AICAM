@@ -52,6 +52,7 @@ TRACK_HIGHEST_CONFIDENCE = True
 
 motor1 = Motor(forward=5,  backward=6)   # tilt / vertical
 motor2 = Motor(forward=13, backward=19)  # pan  / horizontal
+shooter = Motor(forward=26, backward=20)  # Actually the gun
 
 def stop_all_motors():
     motor1.stop()
@@ -73,9 +74,32 @@ def motor_down(magnitude: float):
     print(f"[MOTOR] TILT DOWN | magnitude={magnitude:.2f}")
     motor1.forward(MOTOR_SPEED)
 
+last_time = 0
 def motor_centered():
+    global last_time
     print("[MOTOR] CENTERED — stopping")
     stop_all_motors()
+    current_time = time.time()
+    if current_time - last_time >= 1.0:#Wait this many seconds before firing again
+        gun_fire()
+        last_time = current_time
+
+def gun_on():
+    print("[shooter] firing")
+    shooter.forward(0.5)
+    
+def gun_stop():
+    print("[shooter] stopping")
+    shooter.stop()
+    
+def gun_fire(duration=0.2):
+    def fire():
+        print("Shooting a few times")
+        shooter.forward(0.5)
+        time.sleep(duration)
+        shooter.stop()
+    #Makes a thread that calls fire with duration
+    threading.Thread(target=fire, daemon=True).start()
 
 # =============================================================
 #  GLOBAL STATE
@@ -322,7 +346,7 @@ def command():
             "pan_right": lambda: motor_right(1.0),
             "tilt_up":   lambda: motor_up(1.0),
             "tilt_down": lambda: motor_down(1.0),
-            "fire":      lambda: print("[FIRE]  Pew pew!"),  # wire up fire mechanism here
+            "fire":      lambda: gun_fire(),  # wire up fire mechanism here
         }
 
         if action in action_map:
@@ -634,3 +658,5 @@ if __name__ == "__main__":
                 else:
                     print("[AI]    No person detected — stopping motors")
                     stop_all_motors()
+
+

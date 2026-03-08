@@ -1,14 +1,17 @@
 Gonna list all my commands and steps for setting up AI camera repo and models and any python for motor logic and webserver or controlling
 This is a Raspberry Pi 4 running standard x64 Debian/Trixie
 
-python3 -m venv turret
-source turret/bin/activate
-
 sudo apt update
 sudo apt full-upgrade
 sudo apt install imx500-all
 sudo apt install python3-opencv python3-munkres
 sudo reboot
+
+git clone https://github.com/TrentChip38/AICAM.git
+cd AICAM
+
+python3 -m venv --system-site-packages turret
+source turret/bin/activate
 
 git clone https://github.com/raspberrypi/picamera2.git
 
@@ -16,14 +19,26 @@ cd picamera2/examples/imx500
 python3 imx500_object_detection_demo.py
 
 Made a new py file called object_detection_motors.py It works with the AI person tracking and moves the motor
+sudo apt-get install -y libcap-dev
+python3 -m venv --system-site-packages venv
+pip install gpiozero picamera2
 python3 object_detection_motors.py
 
 Now working on a video streaming stack Flask + MJPEG + wifi connection
 pip install flask opencv-python
 python3 turret_server.py
 
+Then claude helped me make a script that streams video to the server from AICAM
+And integrates the camera tracking and motor logic
+(turret) trentchip@raspi4:~/AICAM/picamera2/examples/imx500 $ python3 phoneAPI_andAI.py
 
+Since I don't have a LCD screen and don't want to SSH, I think I will set up
+A Arduino Micro that sends keyboard input to open terminal and start python script
 
+How to commit and push:
+git add HowToTurret.txt turret_server.py gpiozeroMotors.py object_detection_motors.py
+git commit -m "Message"
+git push origin main
 
 Also, tried to use LCD. It breaks the AICAM because it changes important config stuff. Won't work.
 Have to run -show and -hdmi to switch back and forth
