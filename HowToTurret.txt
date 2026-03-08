@@ -1,4 +1,8 @@
 Gonna list all my commands and steps for setting up AI camera repo and models and any python for motor logic and webserver or controlling
+This is a Raspberry Pi 4 running standard x64 Debian/Trixie
+
+python3 -m venv turret
+source turret/bin/activate
 
 sudo apt update
 sudo apt full-upgrade
@@ -10,3 +14,64 @@ git clone https://github.com/raspberrypi/picamera2.git
 
 cd picamera2/examples/imx500
 python3 imx500_object_detection_demo.py
+
+Made a new py file called object_detection_motors.py It works with the AI person tracking and moves the motor
+python3 object_detection_motors.py
+
+Now working on a video streaming stack Flask + MJPEG + wifi connection
+pip install flask opencv-python
+python3 turret_server.py
+
+
+
+
+Also, tried to use LCD. It breaks the AICAM because it changes important config stuff. Won't work.
+Have to run -show and -hdmi to switch back and forth
+git clone https://github.com/goodtft/LCD-show.git
+cd LCD-show
+sudo ./LCD35-show
+sudo ./LCD-hdmi
+After that I had to do things to fix it again
+sudo nano /boot/firmware/config.txt
+
+There should be a way to get both to show by editing /boot/config.txt
+
+This is what the config.txt needs to look like to work after breaking it:
+
+# For more options and information see
+# http://rptl.io/configtxt
+# Some settings may impact device functionality. See link above for details
+
+# Uncomment some or all of these to enable the optional hardware interfaces
+#dtparam=i2c_arm=on
+#dtparam=i2s=on
+#dtparam=spi=on
+
+# Enable audio (loads snd_bcm2835)
+dtparam=audio=on
+
+# Additional overlays and parameters are documented
+# /boot/firmware/overlays/README
+
+# Automatically load overlays for detected cameras
+camera_auto_detect=1
+
+# Automatically load overlays for detected DSI displays
+display_auto_detect=1
+
+# Automatically load initramfs files, if found
+auto_initramfs=1
+
+# Enable DRM VC4 V3D driver
+#dtoverlay=vc4-kms-v3d
+max_framebuffers=2
+
+# Don't have the firmware create an initial video= setting in cmdline.txt.
+# Use the kernel's default instead.
+#disable_fw_kms_setup=1
+
+# Run in 64-bit mode
+arm_64bit=1
+
+# Disable compensation for displays with overscan
+disable_overscan=1
