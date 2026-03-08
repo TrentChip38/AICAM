@@ -1,0 +1,12 @@
+Gonna list all my commands and steps for setting up AI camera repo and models and any python for motor logic and webserver or controlling
+
+sudo apt update
+sudo apt full-upgrade
+sudo apt install imx500-all
+sudo apt install python3-opencv python3-munkres
+sudo reboot
+
+git clone https://github.com/raspberrypi/picamera2.git
+
+cd picamera2/examples/imx500
+python3 imx500_object_detection_demo.py
