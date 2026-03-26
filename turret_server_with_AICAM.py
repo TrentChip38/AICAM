@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 =============================================================
-  NERF TURRET CONTROLLER
+  TURRET CONTROLLER
   Flask + MJPEG + IMX500 AI Camera — single file
   - Streams IMX500 camera feed with detection overlays
   - Manual mode: phone buttons drive motors directly
@@ -50,8 +50,8 @@ TRACK_HIGHEST_CONFIDENCE = True
 #  MOTORS  (gpiozero)
 # =============================================================
 
-motor1 = Motor(forward=5,  backward=6)   # tilt / vertical
-motor2 = Motor(forward=13, backward=19)  # pan  / horizontal
+motor1 = Motor(forward=6,  backward=5)   # tilt / vertical
+motor2 = Motor(forward=19, backward=13)  # pan  / horizontal
 shooter = Motor(forward=26, backward=20)  # Actually the gun
 
 def stop_all_motors():
@@ -92,10 +92,10 @@ def gun_stop():
     print("[shooter] stopping")
     shooter.stop()
     
-def gun_fire(duration=0.2):
+def gun_fire(duration=0.8):
     def fire():
         print("Shooting a few times")
-        shooter.forward(0.5)
+        shooter.forward(1)
         time.sleep(duration)
         shooter.stop()
     #Makes a thread that calls fire with duration
@@ -658,5 +658,4 @@ if __name__ == "__main__":
                 else:
                     print("[AI]    No person detected — stopping motors")
                     stop_all_motors()
-
 
