@@ -465,9 +465,24 @@ def index():
 
     .controls{display:flex;flex-direction:column;gap:8px;padding:8px;
       border:1px solid var(--border);background:var(--panel);border-radius:6px}
-    .dpad{display:grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto auto;
-      gap:8px;align-items:center;justify-items:center}
-
+    .dpad{display:grid;grid-template-columns:40px 1fr 40px;
+      grid-template-rows:40px 40px 40px;
+      gap:8px;
+      align-items: center;
+      justify-items: center;
+    }
+    .dpad-info{
+      font-size: 0.95em;
+      color: #00e5ff;
+      min-width: 32px;
+      text-align: center;
+      padding: 0 2px;
+      opacity: 0.85;
+      user-select: none;
+    }
+    #angles.dpad-info{
+      color: #ff9500;
+    }
     .btn{
   -webkit-user-select: none; /* Safari */
   -moz-user-select: none;    /* Firefox */
@@ -518,9 +533,11 @@ def index():
     <div class="ai-badge" id="aiBadge">◆ AI TRACKING</div>
   </div>
 
-  <div class="controls">
+    <div class="controls">
     <div class="dpad">
+            <div id="direction" class="dpad-info"></div>
       <button class="btn btn-up"    data-action="tilt_up">   &#9650; UP    </button>
+            <div id="angles" class="dpad-info"></div>
       <button class="btn btn-left"  data-action="pan_left">  &#9664; LEFT  </button>
       <button class="btn btn-right" data-action="pan_right"> RIGHT &#9654; </button>
       <button class="btn btn-down"  data-action="tilt_down"> &#9660; DOWN  </button>
@@ -555,16 +572,16 @@ def index():
   }
 
   async function updateDirection() {
-    try {
-        const res = await fetch('/direction');
-        const data = await res.json();
-        document.getElementById('direction').textContent = 'Direction: ' + data.direction;
-        document.getElementById('angles').textContent = 'Pitch: ' + data.pitch + '°  Roll: ' + data.roll + '°';
-    } catch (e) {
-        document.getElementById('direction').textContent = 'Direction: (error)';
-        document.getElementById('angles').textContent = 'Pitch: ... Roll: ...';
-    }
-    }
+  try {
+    const res = await fetch('/direction');
+    const data = await res.json();
+    document.getElementById('direction').textContent = data.direction;
+    document.getElementById('angles').textContent = Math.round(data.pitch);
+  } catch (e) {
+    document.getElementById('direction').textContent = '';
+    document.getElementById('angles').textContent = '';
+  }
+}
  setInterval(updateDirection, 500); // update every 0.5s
  updateDirection();
 
