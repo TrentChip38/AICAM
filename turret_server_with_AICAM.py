@@ -44,16 +44,20 @@ STREAM_FPS           = 24
 JPEG_QUALITY         = 70
 HOST                 = "0.0.0.0"
 PORT                 = 5000
-MOTOR_SPEED          = 1
+MOTOR_SPEED          = 0.8
+ANGLE_RANGE_LIMIT    = 30  # degrees beyond which motors stop to prevent over-tilt
 
 HORIZONTAL_DEAD_ZONE = 0.10   # fraction of frame width before motors activate
 VERTICAL_DEAD_ZONE   = 0.10   # fraction of frame height before motors activate
 
+tilt_upper_limit_reached = False
+tilt_lower_limit_reached = False
 TRACK_HIGHEST_CONFIDENCE = True
 
 # I2C setup for LIS3DH at address 0x18
 i2c = busio.I2C(board.SCL, board.SDA)
 lis3dh = adafruit_lis3dh.LIS3DH_I2C(i2c, address=0x18)
+lis3dh.data_rate = adafruit_lis3dh.DATARATE_100_HZ
 
 def get_accel_direction():
     x, y, z = lis3dh.acceleration  # in m/s^2
@@ -72,7 +76,7 @@ def get_accel_angles():
     # Pitch: rotation around X axis (forward/backward tilt)
     # Roll:  rotation around Y axis (side-to-side tilt)
     pitch = -(math.degrees(math.atan2(-x, math.sqrt(y*y + z*z))))
-    roll  = math.degrees(math.atan2(y, z))
+    roll  = 0 #math.degrees(math.atan2(y, z))
     return pitch, roll
     
 def get_accel_direction():
@@ -104,21 +108,37 @@ def motor_right(magnitude: float):
     print(f"[MOTOR] PAN RIGHT | magnitude={magnitude:.2f}")
     motor2.backward(MOTOR_SPEED)
 
+def tilt_safety_monitor():
+    while True:
+        pitch, _ = get_accel_angles()
+        # Check if motor1 is running (either forward or backward)
+        if motor1.is_active:
+            if pitch >= ANGLE_RANGE_LIMIT or pitch <= -ANGLE_RANGE_LIMIT:
+                print(f"[SAFETY] Stopping tilt motor: pitch={pitch:.1f} out of bounds")
+                motor1.stop()
+        time.sleep(0.02)  # 20ms polling interval
+# Start the safety monitor thread at startup
+threading.Thread(target=tilt_safety_monitor, daemon=True).start()
+
 def motor_up(magnitude: float):
     pitch, _ = get_accel_angles()
-    if pitch < 45:
+    if pitch < ANGLE_RANGE_LIMIT:
         print(f"[MOTOR] TILT UP   | magnitude={magnitude:.2f} | pitch={pitch:.1f}")
         motor1.backward(MOTOR_SPEED)
     else:
-        print(f"[MOTOR] TILT UP   | blocked, pitch={pitch:.1f} >= 45")
+        print(f"[MOTOR] TILT UP   | blocked, pitch={pitch:.1f} >= {ANGLE_RANGE_LIMIT}")
+        motor1.stop()
 
 def motor_down(magnitude: float):
     pitch, _ = get_accel_angles()
-    if pitch > -45:
+    if pitch > -ANGLE_RANGE_LIMIT:
         print(f"[MOTOR] TILT DOWN | magnitude={magnitude:.2f} | pitch={pitch:.1f}")
         motor1.forward(MOTOR_SPEED)
+        #Wait time
+
     else:
-        print(f"[MOTOR] TILT DOWN | blocked, pitch={pitch:.1f} <= -45")
+        print(f"[MOTOR] TILT DOWN | blocked, pitch={pitch:.1f} <= -{ANGLE_RANGE_LIMIT}")
+        motor1.stop()
 
 last_time = 0
 def motor_centered():
