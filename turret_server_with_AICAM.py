@@ -24,6 +24,11 @@ import time
 import argparse
 from functools import lru_cache
 
+import board
+import busio
+import adafruit_lis3dh
+import math
+
 import cv2
 from flask import Flask, Response, request, jsonify
 from gpiozero import Motor
@@ -46,6 +51,39 @@ VERTICAL_DEAD_ZONE   = 0.10   # fraction of frame height before motors activate
 
 TRACK_HIGHEST_CONFIDENCE = True
 
+# I2C setup for LIS3DH at address 0x18
+i2c = busio.I2C(board.SCL, board.SDA)
+lis3dh = adafruit_lis3dh.LIS3DH_I2C(i2c, address=0x18)
+
+def get_accel_direction():
+    x, y, z = lis3dh.acceleration  # in m/s^2
+    # Simple direction logic (customize as needed)
+    if abs(x) > abs(y):
+        if x > 2: return "LEFT"
+        elif x < -2: return "RIGHT"
+    else:
+        if y > 2: return "FORWARD"
+        elif y < -2: return "BACKWARD"
+    return "FLAT"
+import math
+
+def get_accel_angles():
+    x, y, z = lis3dh.acceleration
+    # Pitch: rotation around X axis (forward/backward tilt)
+    # Roll:  rotation around Y axis (side-to-side tilt)
+    pitch = math.degrees(math.atan2(-x, math.sqrt(y*y + z*z)))
+    roll  = math.degrees(math.atan2(y, z))
+    return pitch, roll
+    
+def get_accel_direction():
+    pitch, roll = get_accel_angles()
+    if abs(pitch) > abs(roll):
+        if pitch > 10: return "UP"
+        elif pitch < -10: return "DOWN"
+    else:
+        if roll > 10: return "LEFT"
+        elif roll < -10: return "RIGHT"
+    return "FLAT"
 # =============================================================
 #  MOTORS  (gpiozero)
 # =============================================================
@@ -316,6 +354,15 @@ def video_feed():
     return Response(generate_frames(),
                     mimetype="multipart/x-mixed-replace; boundary=frame")
 
+@app.route("/direction")
+def direction():
+    dir = get_accel_direction()
+    pitch, roll = get_accel_angles()
+    return jsonify({
+        "direction": dir,
+        "pitch": round(pitch, 1),
+        "roll": round(roll, 1)
+    })
 
 @app.route("/command", methods=["POST"])
 def command():
@@ -361,6 +408,11 @@ def command():
 def status():
     return jsonify({"ai_mode": ai_mode_enabled})
 
+#What showed the angles and direction up top
+# </head>
+# <body>
+# <div id="angles" style="margin:10px 0;font-size:1.2em;color:#ff9500;">...</div>
+# <div id="direction" style="margin:10px 0;font-size:1.2em;color:#00e5ff;">...</div>
 
 @app.route("/")
 def index():
@@ -416,7 +468,12 @@ def index():
     .dpad{display:grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto auto;
       gap:8px;align-items:center;justify-items:center}
 
-    .btn{-webkit-tap-highlight-color:transparent;user-select:none;cursor:pointer;
+    .btn{
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+/Edge */
+  user-select: none;         /* Standard */
+  -webkit-tap-highlight-color:transparent;user-select:none;cursor:pointer;
       border:1px solid var(--border);border-radius:6px;background:#0d1117;color:var(--text);
       font-family:'Rajdhani',sans-serif;font-size:.75rem;font-weight:600;
       letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;min-width:64px;
@@ -496,6 +553,20 @@ def index():
     aiBadge.classList.toggle('visible', on);
     showToast(on ? 'AI TURRET ON' : 'AI TURRET OFF');
   }
+
+  async function updateDirection() {
+    try {
+        const res = await fetch('/direction');
+        const data = await res.json();
+        document.getElementById('direction').textContent = 'Direction: ' + data.direction;
+        document.getElementById('angles').textContent = 'Pitch: ' + data.pitch + '°  Roll: ' + data.roll + '°';
+    } catch (e) {
+        document.getElementById('direction').textContent = 'Direction: (error)';
+        document.getElementById('angles').textContent = 'Pitch: ... Roll: ...';
+    }
+    }
+ setInterval(updateDirection, 500); // update every 0.5s
+ updateDirection();
 
   async function sendCommand(action, event = 'press') {
     try {

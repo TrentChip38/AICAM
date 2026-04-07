@@ -35,6 +35,11 @@ And integrates the camera tracking and motor logic
 Since I don't have a LCD screen and don't want to SSH, I think I will set up
 A Arduino Micro that sends keyboard input to open terminal and start python script
 
+Now I'm also using SSH and that works.
+
+Added Adafruit Accelerometer that needs this package
+pip install adafruit-circuitpython-lis3dh --break-system-packages
+
 How to commit and push:
 git add HowToTurret.txt turret_server.py gpiozeroMotors.py object_detection_motors.py
 git commit -m "Message"
