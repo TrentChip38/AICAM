@@ -44,7 +44,7 @@ STREAM_FPS           = 24
 JPEG_QUALITY         = 70
 HOST                 = "0.0.0.0"
 PORT                 = 5000
-MOTOR_SPEED          = 0.5
+MOTOR_SPEED          = 1
 
 HORIZONTAL_DEAD_ZONE = 0.10   # fraction of frame width before motors activate
 VERTICAL_DEAD_ZONE   = 0.10   # fraction of frame height before motors activate
@@ -59,8 +59,8 @@ def get_accel_direction():
     x, y, z = lis3dh.acceleration  # in m/s^2
     # Simple direction logic (customize as needed)
     if abs(x) > abs(y):
-        if x > 2: return "LEFT"
-        elif x < -2: return "RIGHT"
+        if x > 2: return "UP"
+        elif x < -2: return "DOWN"
     else:
         if y > 2: return "FORWARD"
         elif y < -2: return "BACKWARD"
@@ -71,7 +71,7 @@ def get_accel_angles():
     x, y, z = lis3dh.acceleration
     # Pitch: rotation around X axis (forward/backward tilt)
     # Roll:  rotation around Y axis (side-to-side tilt)
-    pitch = math.degrees(math.atan2(-x, math.sqrt(y*y + z*z)))
+    pitch = -(math.degrees(math.atan2(-x, math.sqrt(y*y + z*z))))
     roll  = math.degrees(math.atan2(y, z))
     return pitch, roll
     
@@ -81,8 +81,8 @@ def get_accel_direction():
         if pitch > 10: return "UP"
         elif pitch < -10: return "DOWN"
     else:
-        if roll > 10: return "LEFT"
-        elif roll < -10: return "RIGHT"
+        if roll > 10: return "UP"
+        elif roll < -10: return "DOWN"
     return "FLAT"
 # =============================================================
 #  MOTORS  (gpiozero)
@@ -105,12 +105,20 @@ def motor_right(magnitude: float):
     motor2.backward(MOTOR_SPEED)
 
 def motor_up(magnitude: float):
-    print(f"[MOTOR] TILT UP   | magnitude={magnitude:.2f}")
-    motor1.backward(MOTOR_SPEED)
+    pitch, _ = get_accel_angles()
+    if pitch < 45:
+        print(f"[MOTOR] TILT UP   | magnitude={magnitude:.2f} | pitch={pitch:.1f}")
+        motor1.backward(MOTOR_SPEED)
+    else:
+        print(f"[MOTOR] TILT UP   | blocked, pitch={pitch:.1f} >= 45")
 
 def motor_down(magnitude: float):
-    print(f"[MOTOR] TILT DOWN | magnitude={magnitude:.2f}")
-    motor1.forward(MOTOR_SPEED)
+    pitch, _ = get_accel_angles()
+    if pitch > -45:
+        print(f"[MOTOR] TILT DOWN | magnitude={magnitude:.2f} | pitch={pitch:.1f}")
+        motor1.forward(MOTOR_SPEED)
+    else:
+        print(f"[MOTOR] TILT DOWN | blocked, pitch={pitch:.1f} <= -45")
 
 last_time = 0
 def motor_centered():
