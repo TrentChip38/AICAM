@@ -45,7 +45,7 @@ JPEG_QUALITY         = 70
 HOST                 = "0.0.0.0"
 PORT                 = 5000
 MOTOR_SPEED          = 0.8
-ANGLE_RANGE_LIMIT    = 30  # degrees beyond which motors stop to prevent over-tilt
+ANGLE_RANGE_LIMIT    = 45  # degrees beyond which motors stop to prevent over-tilt
 
 HORIZONTAL_DEAD_ZONE = 0.10   # fraction of frame width before motors activate
 VERTICAL_DEAD_ZONE   = 0.10   # fraction of frame height before motors activate
@@ -113,10 +113,13 @@ def tilt_safety_monitor():
         pitch, _ = get_accel_angles()
         # Check if motor1 is running (either forward or backward)
         if motor1.is_active:
-            if pitch >= ANGLE_RANGE_LIMIT or pitch <= -ANGLE_RANGE_LIMIT:
+            if motor1.value < 0 and pitch >= ANGLE_RANGE_LIMIT:
                 print(f"[SAFETY] Stopping tilt motor: pitch={pitch:.1f} out of bounds")
                 motor1.stop()
-        time.sleep(0.02)  # 20ms polling interval
+            if motor1.value > 0 and pitch <= -ANGLE_RANGE_LIMIT:
+                print(f"[SAFETY] Stopping tilt motor: pitch={pitch:.1f} out of bounds")
+                motor1.stop()
+        time.sleep(0.30)  # 100ms polling interval
 # Start the safety monitor thread at startup
 threading.Thread(target=tilt_safety_monitor, daemon=True).start()
 
